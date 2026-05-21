@@ -1,10 +1,9 @@
-// Este código es una composición basada en patrones oficiales de Flutter/Dart
-// y los recursos de referencia indicados
-
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../models/user_model.dart';
 import '../services/user_service.dart';
+import '../services/hive_service.dart';
+import '../services/sync_service.dart';
 
 class LoginViewModel extends ChangeNotifier {
   final AuthService _authService = AuthService();
@@ -37,7 +36,6 @@ class LoginViewModel extends ChangeNotifier {
   Future<bool> checkSession() async {
     if (_isLoading) return false;
 
-    // Síncrono: sin microtask, sin race condition
     _isLoading = true;
     notifyListeners();
 
@@ -62,13 +60,14 @@ class LoginViewModel extends ChangeNotifier {
     return false;
   }
 
-  // ← NUEVO: El método que ProfileScreen estaba buscando
   Future<void> logout() async {
     _isLoading = true;
     notifyListeners();
 
-    await _authService.logout(); // Borra el token de la caja fuerte
-    _user = null;                // Limpiamos el usuario en memoria
+    await _authService.logout();
+    await HiveService().limpiarTodo();
+    SyncService().detener();
+    _user = null;
 
     _isLoading = false;
     notifyListeners();

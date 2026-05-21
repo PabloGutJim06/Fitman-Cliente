@@ -1,18 +1,23 @@
 // main.dart
+import 'package:cliente/viewmodels/edit_profile_viewmodel.dart';
 import 'package:cliente/views/screens/loginScreen.dart';
-import 'package:cliente/views/screens/splash_screen.dart'; // 1. IMPORTAMOS TU SPLASH
+import 'package:cliente/views/screens/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'views/screens/main_navigation_screem.dart';
 import 'package:provider/provider.dart';
 import 'viewmodels/login_viewmodel.dart';
 import 'viewmodels/routine_viewmodel.dart';
-import 'viewmodels/login_viewmodel.dart';
-import 'viewmodels/routine_viewmodel.dart';
-import 'viewmodels/profile_viewmodel.dart'; // ¡El nuevo cañón!
+import 'viewmodels/profile_viewmodel.dart';
 import 'viewmodels/registro_viewmodel.dart';
+import 'viewmodels/register_viewmodel.dart';
+import 'viewmodels/ejercicio_viewmodel.dart';
 import 'theme/app_theme.dart';
+import 'services/hive_service.dart';
 
-void main() {
+void main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+  await HiveService.init();
+
   runApp(
     MultiProvider(
       providers: [
@@ -20,6 +25,10 @@ void main() {
         ChangeNotifierProvider(create: (_) => RoutineViewModel()),
         ChangeNotifierProvider(create: (_) => ProfileViewModel()),
         ChangeNotifierProvider(create: (_) => RegistroViewModel()),
+        ChangeNotifierProvider(create: (_) => RegisterViewModel()),
+        ChangeNotifierProvider(create: (_) => EditProfileViewModel()),
+        ChangeNotifierProvider(create: (_) => EjercicioViewModel()),
+
       ],
       child: const FitManApp(),
     ),
@@ -35,7 +44,6 @@ class FitManApp extends StatelessWidget {
       title: 'FitMan',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
-      // 2. CAMBIO MÍNIMO: Definimos la Splash como inicio y las rutas para que sepa a dónde ir
       initialRoute: '/',
       routes: {
         '/': (context) => const SplashScreen(),        // Pantalla de inicio

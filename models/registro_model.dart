@@ -1,6 +1,3 @@
-// Este código es una composición basada en patrones oficiales de Flutter/Dart
-// y los recursos de referencia indicados
-
 class RegistroModel {
   final String id;
   final String rutinaId;
@@ -28,8 +25,6 @@ class RegistroModel {
       numEjercicios: json['num_ejercicios'] ?? 0,
       notas: json['notas'] as String?,
       usuarioId: json['usuario_id'] ?? '',
-      // ✅ Parseamos ISO string → DateTime una sola vez aquí
-      // Nunca en los widgets que muestran la fecha
       fecha: DateTime.parse(json['fecha']),
     );
   }

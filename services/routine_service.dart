@@ -1,13 +1,9 @@
-// Este código es una composición basada en patrones oficiales de Flutter/Dart
-// y los recursos de referencia indicados
-
 import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 import '../models/routine_model.dart';
 import '../config/api_config.dart';
 
-// Excepción tipada: sabemos QUÉ falló, no solo que algo falló
 class RoutineServiceException implements Exception {
   final String message;
   const RoutineServiceException(this.message);
@@ -31,7 +27,7 @@ class RoutineService {
         'Error del servidor: ${response.statusCode}',
       );
     } on RoutineServiceException {
-      rethrow; // Dejamos pasar las nuestras
+      rethrow;
     } catch (e) {
       throw RoutineServiceException('Sin conexión o error inesperado.');
     }
@@ -54,6 +50,78 @@ class RoutineService {
       rethrow;
     } catch (e) {
       throw RoutineServiceException('Sin conexión. Comprueba tu red.');
+    }
+  }
+
+  Future<bool> patchRoutine(String id, RoutineModel routine, String token) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('${ApiConfig.rutinas}/$id'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(routine.toJson()),
+      );
+      return response.statusCode == 200;
+    } on RoutineServiceException {
+      rethrow;
+    } catch (e) {
+      throw RoutineServiceException('Error al actualizar la rutina.');
+    }
+  }
+
+  Future<bool> deleteRoutine(String id, String token) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('${ApiConfig.rutinas}/$id'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      return response.statusCode == 200;
+    } on RoutineServiceException {
+      rethrow;
+    } catch (e) {
+      throw RoutineServiceException('Error al eliminar la rutina.');
+    }
+  }
+  Future<bool> addColaborador(
+      String rutinaId, String email, String token) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConfig.rutinas}/$rutinaId/colaboradores'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'email': email}),
+      );
+
+      if (response.statusCode == 201) return true;
+
+      final body = jsonDecode(response.body);
+      throw RoutineServiceException(
+          body['error'] ?? 'Error al añadir colaborador');
+    } on RoutineServiceException {
+      rethrow;
+    } catch (e) {
+      if (e is RoutineServiceException) rethrow;
+      throw RoutineServiceException('Error de conexión.');
+    }
+  }
+
+  Future<bool> removeColaborador(
+      String rutinaId, String colaboradorId, String token) async {
+    try {
+      final response = await http.delete(
+        Uri.parse(
+            '${ApiConfig.rutinas}/$rutinaId/colaboradores/$colaboradorId'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      return response.statusCode == 200;
+    } on RoutineServiceException {
+      rethrow;
+    } catch (e) {
+      throw RoutineServiceException('Error al eliminar colaborador.');
     }
   }
 }

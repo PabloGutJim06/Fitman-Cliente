@@ -1,6 +1,3 @@
-// Este código es una composición basada en patrones oficiales de Flutter/Dart
-// y los recursos de referencia indicados
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -17,7 +14,6 @@ class HistorialScreen extends StatefulWidget {
 }
 
 class _HistorialScreenState extends State<HistorialScreen> {
-  // ✅ Día seleccionado en el calendario — arranca en hoy
   DateTime _selectedDay = DateTime.now();
   DateTime _focusedDay = DateTime.now();
 
@@ -34,12 +30,7 @@ class _HistorialScreenState extends State<HistorialScreen> {
     }
   }
 
-  // ✅ Normaliza DateTime a medianoche para comparaciones de fecha
-  // sin este paso, dos Timestamps del mismo día no son iguales
   DateTime _soloFecha(DateTime dt) => DateTime(dt.year, dt.month, dt.day);
-
-  // ✅ eventLoader: table_calendar llama a esto por cada día visible
-  // Devolvemos los registros de ese día — si hay alguno, pinta el punto
   List<RegistroModel> _eventosDelDia(
       DateTime dia, List<RegistroModel> registros) {
     return registros
@@ -47,7 +38,6 @@ class _HistorialScreenState extends State<HistorialScreen> {
         .toList();
   }
 
-  // ✅ Registros del día seleccionado — para la lista de abajo
   List<RegistroModel> _registrosSeleccionados(
       List<RegistroModel> registros) {
     return registros
@@ -152,7 +142,6 @@ class _HistorialScreenState extends State<HistorialScreen> {
     final theme = Theme.of(context);
 
     return TableCalendar<RegistroModel>(
-      // Rango del calendario — desde hace 2 años hasta fin de año actual
       firstDay: DateTime(DateTime.now().year - 2, 1, 1),
       lastDay: DateTime(DateTime.now().year, 12, 31),
       focusedDay: _focusedDay,
@@ -162,7 +151,6 @@ class _HistorialScreenState extends State<HistorialScreen> {
       },
       selectedDayPredicate: (day) => isSameDay(day, _selectedDay),
 
-      // ✅ eventLoader conectado con los registros del ViewModel
       eventLoader: (day) => _eventosDelDia(day, vm.registros),
 
       onDaySelected: (selectedDay, focusedDay) {
@@ -173,7 +161,6 @@ class _HistorialScreenState extends State<HistorialScreen> {
       },
 
       onPageChanged: (focusedDay) {
-        // No necesitamos setState aquí — solo actualizamos el mes visible
         _focusedDay = focusedDay;
       },
 
@@ -228,7 +215,6 @@ class _HistorialScreenState extends State<HistorialScreen> {
         outsideTextStyle:
         const TextStyle(color: AppColors.textMuted),
 
-        // ✅ El punto verde bajo el día indica que hay un entrenamiento
         markerDecoration: const BoxDecoration(
           color: AppColors.primary,
           shape: BoxShape.circle,
@@ -236,14 +222,12 @@ class _HistorialScreenState extends State<HistorialScreen> {
         markerSize: 5.0,
         markersMaxCount: 1,
 
-        // Fondo de la cuadrícula
         isTodayHighlighted: true,
         cellMargin: const EdgeInsets.all(4),
       ),
 
       // Fondo del calendario
       calendarBuilders: CalendarBuilders(
-        // Contenedor del mes completo
       ),
 
       daysOfWeekStyle: DaysOfWeekStyle(
@@ -258,8 +242,6 @@ class _HistorialScreenState extends State<HistorialScreen> {
       ),
     );
   }
-
-  // ─── Widgets auxiliares ────────────────────────────────────────────
 
   Widget _buildResumenChips(RegistroViewModel vm, BuildContext context) {
     final theme = Theme.of(context);
@@ -422,8 +404,6 @@ class _HistorialScreenState extends State<HistorialScreen> {
     );
   }
 
-  // ─── Helpers de formato ────────────────────────────────────────────
-
   String _formatFechaSeleccionada(DateTime fecha) {
     const dias = [
       'Lunes', 'Martes', 'Miércoles', 'Jueves',
@@ -433,7 +413,6 @@ class _HistorialScreenState extends State<HistorialScreen> {
       'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
       'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
     ];
-    // weekday: 1=Lunes ... 7=Domingo
     return '${dias[fecha.weekday - 1]}, ${fecha.day} de ${meses[fecha.month - 1]}';
   }
 

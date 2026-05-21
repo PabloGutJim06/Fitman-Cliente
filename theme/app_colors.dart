@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   // Colores principales
-  static const Color primary = Color(0xFFADFF2F); // Tu famoso verde neón fosforito
-  static const Color background = Colors.black; // El fondo oscuro del océano
+  static const Color primary = Color(0xFFADFF2F); // verde neón fosforito
+  static const Color background = Colors.black; // El fondo oscuro
 
   // Grises y superficies (Para tarjetas, diálogos, menús)
   static const Color surface = Color(0xFF1E1E1E); // Gris oscuro para tarjetas

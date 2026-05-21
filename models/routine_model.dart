@@ -1,5 +1,25 @@
-// Este código es una composición basada en patrones oficiales de Flutter/Dart
-// y los recursos de referencia indicados
+class ColaboradorModel {
+  final String usuarioId;
+  final String nombre;
+  final String email;
+  final bool puedeEditar;
+
+  const ColaboradorModel({
+    required this.usuarioId,
+    required this.nombre,
+    required this.email,
+    required this.puedeEditar,
+  });
+
+  factory ColaboradorModel.fromJson(Map<String, dynamic> json) {
+    return ColaboradorModel(
+      usuarioId: json['usuario_id'] ?? '',
+      nombre: json['nombre'] ?? '',
+      email: json['email'] ?? '',
+      puedeEditar: json['puede_editar'] ?? false,
+    );
+  }
+}
 
 class ExerciseModel {
   String nombre;
@@ -41,7 +61,6 @@ class ExerciseModel {
     }
     return map;
   }
-// ✅ Cierre de ExerciseModel
 }
 
 class RoutineModel {
@@ -49,7 +68,18 @@ class RoutineModel {
   final String? id;
   List<ExerciseModel> ejercicios;
 
-  RoutineModel({this.id, required this.nombre, required this.ejercicios});
+  final bool esCreador;
+  final bool puedeEditar;
+  final List<ColaboradorModel> colaboradores;
+
+  RoutineModel({
+    this.id,
+    required this.nombre,
+    required this.ejercicios,
+    this.esCreador = true,
+    this.puedeEditar = true,
+    this.colaboradores = const [],
+  });
 
   factory RoutineModel.fromJson(Map<String, dynamic> json) => RoutineModel(
     id: json['_id'] ?? json['id'],
@@ -57,10 +87,36 @@ class RoutineModel {
     ejercicios: (json['ejercicios'] as List)
         .map((e) => ExerciseModel.fromJson(e))
         .toList(),
+    esCreador: json['es_creador'] ?? true,
+    puedeEditar: json['puede_editar'] ?? true,
+    colaboradores: json['colaboradores'] != null
+        ? (json['colaboradores'] as List)
+        .map((c) => ColaboradorModel.fromJson(c))
+        .toList()
+        : [],
   );
 
   Map<String, dynamic> toJson() => {
     "rutina_nombre": nombre,
     "ejercicios": ejercicios.map((e) => e.toJson()).toList(),
   };
+
+  bool get tienePermisoEdicion => esCreador || puedeEditar;
+
+  Map<String, dynamic> toJsonCompleto() => {
+    'id': id,
+    'rutina_nombre': nombre,
+    'ejercicios': ejercicios.map((e) => e.toJson()).toList(),
+    'es_creador': esCreador,
+    'puede_editar': puedeEditar,
+    'colaboradores': colaboradores
+        .map((c) => {
+      'usuario_id': c.usuarioId,
+      'nombre': c.nombre,
+      'email': c.email,
+      'puede_editar': c.puedeEditar,
+    })
+        .toList(),
+  };
+
 }

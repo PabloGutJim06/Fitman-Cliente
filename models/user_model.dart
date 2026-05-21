@@ -1,19 +1,14 @@
-// Este código es una composición basada en patrones oficiales de Flutter/Dart
-// y los recursos de referencia indicados
-
 class UserModel {
   final String id;
   final String nombre;
   final String email;
   final String? token;
   final double? pesoActual;
-  final double? altura;
-  final int? entrenamientos;
   final int? edad;
-  final double? pesoObjetivo;
-  final String? experiencia;
-  final String? fechaMiembro;       // ← Este campo ya existía
-  final int? entrenamientosRealizados;
+  final double? altura;
+  final String? nivel;
+  final String? objetivo;
+  final String? fechaMiembro;
 
   UserModel({
     required this.id,
@@ -21,13 +16,11 @@ class UserModel {
     required this.email,
     this.token,
     this.pesoActual,
-    this.altura,
-    this.entrenamientos,
     this.edad,
-    this.pesoObjetivo,
-    this.experiencia,
+    this.altura,
+    this.nivel,
+    this.objetivo,
     this.fechaMiembro,
-    this.entrenamientosRealizados,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json, [String? token]) {
@@ -36,15 +29,12 @@ class UserModel {
       nombre: json['nombre'] ?? 'Usuario',
       email: json['email'] ?? '',
       token: token,
-      pesoActual: (json['pesoActual'] as num?)?.toDouble(),
+      pesoActual: (json['peso_actual'] as num?)?.toDouble(),
+      edad: json['edad'] as int?,
       altura: (json['altura'] as num?)?.toDouble(),
-      entrenamientos: json['entrenamientos'] ?? 0,
-      edad: json['edad'],
-      pesoObjetivo: (json['pesoObjetivo'] as num?)?.toDouble(),
-      experiencia: json['experiencia'] ?? '-',
-      // ✅ CORRECCIÓN: mapeamos fecha_registro desde el servidor
+      nivel: json['nivel'] as String?,
+      objetivo: json['objetivo'] as String?,
       fechaMiembro: json['fecha_registro'] as String?,
-      entrenamientosRealizados: json['entrenamientosRealizados'],
     );
   }
 }

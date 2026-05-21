@@ -1,10 +1,11 @@
 // views/screens/login_screen.dart
+import 'package:cliente/views/screens/register_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/login_viewmodel.dart';
-import '../screens/main_navigation_screem.dart'; // Recuerda corregir este typo algún día ;)
-// ¡IMPACTO! Aquí traemos nuestras balas de pintura:
+import '../screens/main_navigation_screem.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/app_theme.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,13 +15,11 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // 1. Los Controladores: ¡Nuestra munición!
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
   @override
   void dispose() {
-    // ¡REGLA DE ORO! Siempre libera los controladores para evitar fugas de memoria
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -29,23 +28,21 @@ class _LoginScreenState extends State<LoginScreen> {
   void _handleLogin() async {
     final viewModel = context.read<LoginViewModel>();
 
-    // Disparamos el login
+    //  el login
     final success = await viewModel.login(
       _emailController.text.trim(),
       _passwordController.text.trim(),
     );
 
     if (success && mounted) {
-      // Hissatsu: ¡Navegación sin retorno!
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
       );
     } else if (mounted) {
-      // Si falla, disparamos nuestra bomba de humo roja centralizada
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('¡Error de acceso! Revisa tus credenciales, pirata.',
+          content: Text('¡Error de acceso! Revisa tus credenciales.',
               style: Theme.of(context).textTheme.bodyLarge),
           backgroundColor: AppColors.error, // Antes: Colors.redAccent
         ),
@@ -56,7 +53,6 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final isLoading = context.watch<LoginViewModel>().isLoading;
-    // ¡Sacamos el catalejo! Obtenemos el tema una sola vez
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -70,7 +66,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  // Reemplazamos grises quemados por nuestro sistema
                   colors: [AppColors.surfaceLight, AppColors.background],
                 ),
               ),
@@ -79,7 +74,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Pasamos el tema a nuestro widget extractor
                     _buildHeader(theme),
                     const SizedBox(height: 60),
 
@@ -102,30 +96,48 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 40),
 
-                    // Botón de Entrada Dinámico
+                    // Botón de Entrada
                     SizedBox(
                       width: double.infinity,
                       height: 55,
-                      child: ElevatedButton(
+                      child: OutlinedButton(
                         onPressed: isLoading ? null : _handleLogin,
-                        style: ElevatedButton.styleFrom(
-                          // Disparamos con el color de marca (Neón).
-                          // Si prefieres el verde oscuro clásico, usa AppColors.success
-                          backgroundColor: AppColors.primary,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
+                        style: AppTheme.primaryButtonStyle,
                         child: isLoading
-                            ? const CircularProgressIndicator(color: AppColors.background) // Círculo oscuro para verse en el neón
+                            ? const CircularProgressIndicator(color: AppColors.primary)
                             : Text(
                           'ENTRAR',
-                          // Hacemos que la tipografía herede y modifique lo mínimo
                           style: theme.textTheme.labelLarge?.copyWith(
-                            color: AppColors.background, // Texto oscuro para contrastar con el neón
+                            color: AppColors.primary,
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
                           ),
                         ),
                       ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '¿No tienes cuenta? ',
+                          style: theme.textTheme.bodyMedium
+                              ?.copyWith(color: AppColors.textSecondary),
+                        ),
+                        GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                          ),
+                          child: Text(
+                            'Regístrate',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -137,7 +149,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // Widget auxiliar: Se le pasa ThemeData para no buscar en el context inútilmente
   Widget _buildTextField({
     required TextEditingController controller,
     required String hint,
@@ -166,7 +177,6 @@ class _LoginScreenState extends State<LoginScreen> {
         Container(
           padding: const EdgeInsets.all(15),
           decoration: BoxDecoration(
-            // ¡HISSATSU FIX! En BoxDecoration se usa 'color', no 'backgroundColor'
             color: AppColors.primary,
             borderRadius: BorderRadius.circular(15),
           ),

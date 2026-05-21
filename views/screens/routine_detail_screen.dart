@@ -1,237 +1,427 @@
-// Este código es una composición basada en patrones oficiales de Flutter/Dart
-// y los recursos de referencia indicados
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/routine_model.dart';
 import '../../theme/app_colors.dart';
-import '../../viewmodels/registro_viewmodel.dart';
-import '../../viewmodels/login_viewmodel.dart';
+import '../../theme/app_theme.dart';
+import '../../viewmodels/routine_viewmodel.dart';
+import 'routine_player_screen.dart';
+import 'edit_routine_screen.dart';
+import 'colaboradores_screen.dart';
+import '../../viewmodels/ejercicio_viewmodel.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class RoutineDetailScreen extends StatelessWidget {
   final RoutineModel routine;
 
   const RoutineDetailScreen({super.key, required this.routine});
 
-  // ✅ Recibe context para poder leer providers y mostrar diálogos
-  void _mostrarDialogoCompletar(BuildContext context) {
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
-    showDialog(
-      context: context,
-      // ✅ barrierDismissible: false — el usuario no puede cerrar
-      // el diálogo tocando fuera mientras se procesa la petición
-      barrierDismissible: false,
-      builder: (dialogContext) => _ConfirmarEntrenamientoDialog(
-        routine: routine,
-        theme: theme,
-      ),
+    final rutinaActual = context
+        .watch<RoutineViewModel>()
+        .routines
+        .firstWhere(
+          (r) => r.id == routine.id,
+      orElse: () => routine,
     );
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(rutinaActual.nombre, style: theme.textTheme.titleLarge),
+        backgroundColor: AppColors.surface,
+        iconTheme: const IconThemeData(color: AppColors.primary),
+        actions: [
+          if (rutinaActual.tienePermisoEdicion)
+            IconButton(
+              icon: const Icon(Icons.edit_outlined, color: AppColors.primary),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => EditRoutineScreen(routine: rutinaActual),
+                ),
+              ),
+            ),
+          if (rutinaActual.esCreador)
+            IconButton(
+              icon: const Icon(Icons.group_outlined, color: AppColors.primary),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ColaboradoresScreen(routine: rutinaActual),
+                ),
+              ),
+            ),
+        ],
+      ),
+      body: _RoutineDetailBody(rutina: rutinaActual),
+    );
+  }
+}
+
+class _RoutineDetailBody extends StatefulWidget {
+  final RoutineModel rutina;
+
+  const _RoutineDetailBody({required this.rutina});
+
+  @override
+  State<_RoutineDetailBody> createState() => _RoutineDetailBodyState();
+}
+
+class _RoutineDetailBodyState extends State<_RoutineDetailBody> {
+  bool? _mostrarBanner;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!widget.rutina.esCreador && !widget.rutina.puedeEditar) {
+      _checkBanner();
+    }
+  }
+
+  Future<void> _checkBanner() async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'rutina_vista_${widget.rutina.id}';
+    final yaVisto = prefs.getBool(key) ?? false;
+
+    if (!mounted) return;
+
+    if (!yaVisto) {
+      await prefs.setBool(key, true);
+      setState(() => _mostrarBanner = true);
+    } else {
+      setState(() => _mostrarBanner = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final rutina = widget.rutina;
+    final esSoloLectura =
+        !rutina.esCreador && !rutina.puedeEditar;
+    final mostrar = _mostrarBanner ?? false;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(routine.nombre, style: theme.textTheme.titleLarge),
-        backgroundColor: AppColors.surface,
-        iconTheme: const IconThemeData(color: AppColors.primary),
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [AppColors.background, AppColors.surface],
+        ),
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [AppColors.background, AppColors.surface],
+      child: Column(
+        children: [
+          if (!rutina.esCreador)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceLight,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: AppColors.textMuted.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.group_outlined,
+                          color: AppColors.textMuted, size: 13),
+                      const SizedBox(width: 5),
+                      Text(
+                        'Compartida contigo',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textMuted,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+          if (esSoloLectura && mostrar)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceLight,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                      color: AppColors.textMuted.withOpacity(0.25)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.lock_outline,
+                        color: AppColors.textMuted, size: 16),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Solo puedes ver y usar esta rutina',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => setState(() => _mostrarBanner = false),
+                      child: const Icon(Icons.close,
+                          color: AppColors.textMuted, size: 16),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          // Lista de ejercicios
+          Expanded(
+            child: rutina.ejercicios.isEmpty
+                ? Center(
+              child: Text(
+                'Esta rutina no tiene ejercicios todavía.',
+                style: theme.textTheme.bodyLarge
+                    ?.copyWith(color: AppColors.textSecondary),
+              ),
+            )
+                : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: rutina.ejercicios.length,
+              itemBuilder: (context, index) => _buildExerciseCard(
+                  rutina.ejercicios[index], theme),
+            ),
+          ),
+
+          // Botón iniciar — siempre disponible
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: SizedBox(
+              width: double.infinity,
+              height: 55,
+              child: OutlinedButton.icon(
+                style: AppTheme.primaryButtonStyle,
+                onPressed: rutina.ejercicios.isEmpty
+                    ? null
+                    : () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        RoutinePlayerScreen(routine: rutina),
+                  ),
+                ),
+                icon: const Icon(Icons.play_arrow_rounded,
+                    color: AppColors.primary),
+                label: Text(
+                  'INICIAR ENTRENAMIENTO',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExerciseCard(ExerciseModel ex, ThemeData theme) {
+    final esDescanso = ex.isDescanso;
+
+    return Card(
+      color: AppColors.surfaceLight,
+      margin: const EdgeInsets.only(bottom: 12),
+      shape:
+      RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: esDescanso
+              ? AppColors.textSecondary.withOpacity(0.15)
+              : AppColors.primary,
+          child: Icon(
+            esDescanso ? Icons.timer_outlined : Icons.fitness_center,
+            color: esDescanso ? AppColors.textSecondary : Colors.black,
           ),
         ),
-        // ✅ Column con Expanded para que lista + botón convivan sin overflow
-        child: Column(
-          children: [
-            Expanded(
-              child: routine.ejercicios.isEmpty
-                  ? Center(
-                child: Text(
-                  "Esta rutina no tiene ejercicios todavía.",
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              )
-                  : ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: routine.ejercicios.length,
-                itemBuilder: (context, index) {
-                  return _buildExerciseCard(
-                    routine.ejercicios[index],
-                    theme,
-                  );
-                },
-              ),
-            ),
+        title: Text(
+          ex.nombre,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: esDescanso
+                ? AppColors.textSecondary
+                : AppColors.textPrimary,
+          ),
+        ),
+        subtitle: Text(
+          esDescanso
+              ? '${ex.duracion}s de descanso'
+              : '${ex.series} series × ${ex.repeticiones} reps',
+          style:
+          theme.textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
+        ),
+        trailing: (!esDescanso && (ex.descripcion.isNotEmpty ||
+            context.read<EjercicioViewModel>().buscarPorNombre(ex.nombre) != null))
+            ? Builder(
+          builder: (tileContext) => IconButton(
+            icon: const Icon(Icons.info_outline,
+                color: AppColors.primary),
+            onPressed: () =>
+                _mostrarInfoEjercicio(tileContext, ex, theme),
+          ),
+        )
+            : null,
+      ),
+    );
+  }
 
-            // ✅ Botón fijo al fondo, fuera del scroll
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: AppColors.background,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  // ✅ Deshabilitado si la rutina está vacía — no tiene sentido
-                  // completar una rutina sin ejercicios
-                  onPressed: routine.ejercicios.isEmpty
-                      ? null
-                      : () => _mostrarDialogoCompletar(context),
-                  icon: const Icon(Icons.check_circle_outline),
-                  label: Text(
-                    "COMPLETAR ENTRENAMIENTO",
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+  void _mostrarInfoEjercicio(BuildContext context, ExerciseModel ex, ThemeData theme) {
+    final ejercicioVM = context.read<EjercicioViewModel>();
+    final globalMatch = ejercicioVM.buscarPorNombre(ex.nombre);
+    final descripcion = globalMatch?.descripcion ?? ex.descripcion;
+    final grupoMuscular = globalMatch?.grupoMuscular;
+    final nivel = globalMatch?.nivelDificultad;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surfaceLight,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40, height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: AppColors.textMuted.withOpacity(0.4),
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
+            // Cabecera con grupo muscular si existe
+            Row(
+              children: [
+                Container(
+                  width: 40, height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.fitness_center,
+                      color: AppColors.primary, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(ex.nombre,
+                          style: theme.textTheme.bodyLarge
+                              ?.copyWith(fontWeight: FontWeight.bold)),
+                      if (nivel != null)
+                        Text(
+                          _capitalizarPrimera(nivel),
+                          style: theme.textTheme.bodyMedium
+                              ?.copyWith(color: AppColors.textMuted),
+                        ),
+                    ],
+                  ),
+                ),
+                if (grupoMuscular != null)
+                  _buildGrupoChip(grupoMuscular, theme),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Series y reps
+            Row(
+              children: [
+                _buildInfoChip('${ex.series} series', Icons.repeat, theme),
+                const SizedBox(width: 8),
+                _buildInfoChip(
+                    '${ex.repeticiones} reps', Icons.fitness_center, theme),
+              ],
+            ),
+            if (descripcion.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text(descripcion, style: theme.textTheme.bodyLarge),
+            ],
+            const SizedBox(height: 24),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildExerciseCard(ExerciseModel ex, ThemeData theme) {
-    return Card(
-      color: AppColors.surfaceLight,
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        leading: const CircleAvatar(
-          backgroundColor: AppColors.primary,
-          child: Icon(Icons.fitness_center, color: Colors.black),
-        ),
-        title: Text(
-          ex.nombre,
-          style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Text(
-          "${ex.series} series x ${ex.repeticiones} reps",
-          style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
-        ),
-        trailing: ex.descripcion.isNotEmpty
-            ? const Icon(Icons.info_outline, color: AppColors.textSecondary)
-            : null,
+  Widget _buildGrupoChip(String grupo, ThemeData theme) {
+    final config = _grupoConfig(grupo);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: config.$1.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: config.$1.withOpacity(0.35)),
       ),
-    );
-  }
-}
-
-// ✅ Diálogo extraído a su propio StatefulWidget
-// Motivo: necesita manejar su propio _isLoading para el spinner
-// sin reconstruir toda la pantalla de detalle
-class _ConfirmarEntrenamientoDialog extends StatefulWidget {
-  final RoutineModel routine;
-  final ThemeData theme;
-
-  const _ConfirmarEntrenamientoDialog({
-    required this.routine,
-    required this.theme,
-  });
-
-  @override
-  State<_ConfirmarEntrenamientoDialog> createState() =>
-      _ConfirmarEntrenamientoDialogState();
-}
-
-class _ConfirmarEntrenamientoDialogState
-    extends State<_ConfirmarEntrenamientoDialog> {
-  bool _isLoading = false;
-
-  Future<void> _confirmar() async {
-    setState(() => _isLoading = true);
-
-    final token =
-        context.read<LoginViewModel>().user?.token ?? '';
-    final success = await context.read<RegistroViewModel>().completarEntrenamiento(
-      token,
-      widget.routine.id ?? '',
-      widget.routine.nombre,
-      widget.routine.ejercicios.length,
-    );
-
-    if (!mounted) return;
-
-    // ✅ CRÍTICO: cerramos el diálogo ANTES del SnackBar
-    // Si intentamos mostrar el SnackBar con el diálogo abierto,
-    // el context puede estar en un estado inconsistente
-    Navigator.pop(context);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          success
-              ? '¡Entrenamiento completado! 💪'
-              : 'Error al guardar el registro. Inténtalo de nuevo.',
-          style: widget.theme.textTheme.bodyLarge,
-        ),
-        backgroundColor:
-        success ? AppColors.success : AppColors.error,
-      ),
+      child: Text(config.$2,
+          style: TextStyle(
+              color: config.$1,
+              fontSize: 10,
+              fontWeight: FontWeight.bold)),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: AppColors.surfaceLight,
-      title: Text(
-        '¿Completar entrenamiento?',
-        style: widget.theme.textTheme.titleLarge,
+  (Color, String) _grupoConfig(String g) => switch (g) {
+    'pecho' => (const Color(0xFF4FC3F7), 'PECHO'),
+    'espalda' => (const Color(0xFF81C784), 'ESPALDA'),
+    'piernas' => (const Color(0xFFFFB74D), 'PIERNAS'),
+    'hombros' => (const Color(0xFFCE93D8), 'HOMBROS'),
+    'brazos' => (const Color(0xFFFF8A65), 'BRAZOS'),
+    'core' => (const Color(0xFFF06292), 'CORE'),
+    'cardio' => (const Color(0xFF4DB6AC), 'CARDIO'),
+    'gluteos' => (const Color(0xFFDCE775), 'GLÚTEOS'),
+    'gemelos' => (const Color(0xFFFFD54F), 'GEMELOS'),
+    _ => (AppColors.textMuted, g.toUpperCase()),
+  };
+
+  String _capitalizarPrimera(String t) =>
+      t.isEmpty ? t : t[0].toUpperCase() + t.substring(1);
+
+  Widget _buildInfoChip(String label, IconData icon, ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.primary.withOpacity(0.3)),
       ),
-      content: Text(
-        'Se registrará "${widget.routine.nombre}" como completada hoy.',
-        style: widget.theme.textTheme.bodyMedium,
-      ),
-      actions: [
-        // ✅ Cancelar deshabilitado mientras carga — no permitimos
-        // salir del diálogo a mitad de una petición
-        TextButton(
-          onPressed: _isLoading ? null : () => Navigator.pop(context),
-          child: Text(
-            'CANCELAR',
-            style: widget.theme.textTheme.bodyMedium?.copyWith(
-              color: AppColors.textMuted,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: AppColors.primary, size: 14),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
             ),
           ),
-        ),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: AppColors.background,
-          ),
-          onPressed: _isLoading ? null : _confirmar,
-          child: _isLoading
-              ? const SizedBox(
-            width: 18,
-            height: 18,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: AppColors.background,
-            ),
-          )
-              : Text(
-            'COMPLETAR',
-            style: widget.theme.textTheme.labelLarge,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

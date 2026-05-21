@@ -1,5 +1,6 @@
 // services/user_service.dart
 import 'dart:convert';
+import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 import '../models/user_model.dart';
 import '../config/api_config.dart';
@@ -21,10 +22,6 @@ class UserService {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
-
-        // 🎯 AJUSTE DE PRECISIÓN:
-        // Si el JSON es { "usuario": { "nombre": "...", ... } },
-        // usamos data['usuario']. Si viene directo, usamos data.
         final userData = data.containsKey('usuario') ? data['usuario'] : data;
 
         return UserModel.fromJson(userData, token);
@@ -35,6 +32,26 @@ class UserService {
       }
     } catch (e) {
       throw Exception("Error de conexión en el Grand Line: $e");
+    }
+  }
+
+  Future<bool> patchMe(String token, Map<String, dynamic> body) async {
+    final url = Uri.parse(ApiConfig.userMe);
+
+    try {
+      final response = await http.patch(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(body),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Error en patchMe: $e');
+      return false;
     }
   }
 }

@@ -1,6 +1,3 @@
-// Este código es una composición basada en patrones oficiales de Flutter/Dart
-// y los recursos de referencia indicados
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/routine_model.dart';
@@ -9,8 +6,9 @@ import '../../viewmodels/routine_viewmodel.dart';
 import '../../theme/app_colors.dart';
 import 'create_routine_screen.dart';
 import 'routine_detail_screen.dart';
+import 'edit_routine_screen.dart';
 
-class MyRoutinesScreen extends StatelessWidget { // ← StatelessWidget: ya no necesita initState
+class MyRoutinesScreen extends StatelessWidget {
   const MyRoutinesScreen({super.key});
 
   @override
@@ -80,8 +78,6 @@ class MyRoutinesScreen extends StatelessWidget { // ← StatelessWidget: ya no n
   }
 
   Widget _buildErrorState(String message, BuildContext context) {
-    // El botón reintentar ahora necesita el token — lo obtiene del AuthService
-    // directamente porque ya no tenemos LoginViewModel aquí
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -101,8 +97,6 @@ class MyRoutinesScreen extends StatelessWidget { // ← StatelessWidget: ya no n
             icon: const Icon(Icons.refresh),
             label: const Text("Reintentar"),
             onPressed: () async {
-              // Obtenemos el token directamente del AuthService
-              // (fuente de verdad única para el token)
               final token = await AuthService().getStoredToken();
               if (token != null && context.mounted) {
                 context.read<RoutineViewModel>().loadRoutines(token);
@@ -138,59 +132,271 @@ class MyRoutinesScreen extends StatelessWidget { // ← StatelessWidget: ya no n
   }
 
   Widget _buildRoutineItem(RoutineModel routine, BuildContext context) {
-    return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => RoutineDetailScreen(routine: routine),
-        ),
-      ),
-      child: Container(
+    final theme = Theme.of(context);
+
+    return Dismissible(
+      key: ValueKey(routine.id),
+      direction: DismissDirection.endToStart,
+
+      background: Container(
         margin: const EdgeInsets.only(bottom: 15),
-        padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: AppColors.error,
           borderRadius: BorderRadius.circular(15),
-          border: Border.all(
-              color: AppColors.primary.withOpacity(0.3), width: 1),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 5),
-            ),
-          ],
         ),
-        child: Row(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 24),
+        child: const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.fitness_center,
-                color: AppColors.primary, size: 40),
-            const SizedBox(width: 15),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    routine.nombre,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    "${routine.ejercicios.length} ejercicios",
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(color: AppColors.textMuted),
-                  ),
-                ],
+            Icon(Icons.delete_outline, color: Colors.white, size: 28),
+            SizedBox(height: 4),
+            Text(
+              'Borrar',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
               ),
             ),
-            const Icon(Icons.arrow_forward_ios,
-                color: AppColors.textSecondary, size: 18),
           ],
+        ),
+      ),
+
+      confirmDismiss: (_) async {
+        return await _mostrarConfirmacionBorrar(context, routine.nombre);
+      },
+
+      onDismissed: (_) async {
+        final token = await AuthService().getStoredToken() ?? '';
+        final success = await context
+            .read<RoutineViewModel>()
+            .deleteRoutine(routine.id ?? '', token);
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                success
+                    ? '${routine.nombre} eliminada'
+                    : 'Error al eliminar la rutina',
+              ),
+              backgroundColor:
+              success ? AppColors.surface : AppColors.error,
+            ),
+          );
+        }
+      },
+
+      child: GestureDetector(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => RoutineDetailScreen(routine: routine),
+          ),
+        ),
+        onLongPress: () => _mostrarMenuLongPress(context, routine),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 15),
+          padding: const EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(
+                color: AppColors.primary.withOpacity(0.3), width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.fitness_center,
+                  color: AppColors.primary, size: 40),
+              const SizedBox(width: 15),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      routine.nombre,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      '${routine.ejercicios.length} ejercicios',
+                      style: theme.textTheme.bodyMedium
+                          ?.copyWith(color: AppColors.textMuted),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.arrow_forward_ios,
+                  color: AppColors.textSecondary, size: 18),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+  Future<bool> _mostrarConfirmacionBorrar(
+      BuildContext context, String nombre) async {
+    final theme = Theme.of(context);
+    final resultado = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.surfaceLight,
+        title: Text('¿Borrar rutina?', style: theme.textTheme.titleLarge),
+        content: Text(
+          '¿Seguro que quieres eliminar "$nombre"? Esta acción no se puede deshacer.',
+          style: theme.textTheme.bodyMedium,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text('CANCELAR',
+                style: theme.textTheme.bodyMedium
+                    ?.copyWith(color: AppColors.textMuted)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text('BORRAR',
+                style: theme.textTheme.bodyMedium
+                    ?.copyWith(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+    return resultado ?? false;
+  }
+
+  void _mostrarMenuLongPress(BuildContext context, RoutineModel routine) {
+    final theme = Theme.of(context);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surfaceLight,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: AppColors.textMuted.withOpacity(0.4),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+
+              // Nombre de la rutina como título
+              Padding(
+                padding:
+                const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+                child: Text(
+                  routine.nombre,
+                  style: theme.textTheme.bodyLarge
+                      ?.copyWith(color: AppColors.textSecondary),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+
+              const Divider(color: AppColors.surface, height: 16),
+
+              ListTile(
+                contentPadding:
+                const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+                leading: Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.edit_outlined,
+                      color: AppColors.primary, size: 22),
+                ),
+                title: Text('Editar rutina',
+                    style: theme.textTheme.bodyLarge
+                        ?.copyWith(fontWeight: FontWeight.bold)),
+                subtitle: Text('Próximamente',
+                    style: theme.textTheme.bodyMedium
+                        ?.copyWith(color: AppColors.textMuted)),
+                trailing: const Icon(Icons.arrow_forward_ios_rounded,
+                    color: AppColors.textMuted, size: 14),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => EditRoutineScreen(routine: routine),
+                    ),
+                  );
+                },
+              ),
+
+              // Opción borrar
+              ListTile(
+                contentPadding:
+                const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+                leading: Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.delete_outline,
+                      color: AppColors.error, size: 22),
+                ),
+                title: Text('Borrar rutina',
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.error)),
+                trailing: const Icon(Icons.arrow_forward_ios_rounded,
+                    color: AppColors.textMuted, size: 14),
+                onTap: () async {
+                  Navigator.pop(sheetContext);
+                  final confirmar = await _mostrarConfirmacionBorrar(
+                      context, routine.nombre);
+                  if (confirmar && context.mounted) {
+                    final token =
+                        await AuthService().getStoredToken() ?? '';
+                    final success = await context
+                        .read<RoutineViewModel>()
+                        .deleteRoutine(routine.id ?? '', token);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            success
+                                ? '${routine.nombre} eliminada'
+                                : 'Error al eliminar la rutina',
+                          ),
+                          backgroundColor: success
+                              ? AppColors.surface
+                              : AppColors.error,
+                        ),
+                      );
+                    }
+                  }
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

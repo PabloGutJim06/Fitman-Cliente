@@ -1,13 +1,12 @@
-// Este código es una composición basada en patrones oficiales de Flutter/Dart
-// y los recursos de referencia indicados
-
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; // ← Una sola importación
+import 'package:provider/provider.dart';
 import '../../viewmodels/profile_viewmodel.dart';
 import '../../viewmodels/login_viewmodel.dart';
 import '../../viewmodels/registro_viewmodel.dart';
 import '../../models/user_model.dart';
 import '../../theme/app_colors.dart';
+import 'edit_profile_screen.dart';
+import 'chat_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -17,8 +16,6 @@ class ProfileScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final primaryColor = theme.colorScheme.primary;
 
-    // select evita reconstruir toda la pantalla si cambia
-    // un campo que no usamos — bien aplicado, mantenlo
     final isLoading = context.select<ProfileViewModel, bool>(
           (vm) => vm.isLoading,
     );
@@ -43,9 +40,16 @@ class ProfileScreen extends StatelessWidget {
         title: Text("Mi perfil", style: theme.textTheme.displayLarge),
         actions: [
           IconButton(
-            icon: Icon(Icons.edit, color: primaryColor),
-            // TODO: Navegar a pantalla de edición de perfil
-            onPressed: () => debugPrint('Editar perfil'),
+            icon: const Icon(Icons.fitness_center, color: AppColors.primary),
+            tooltip: 'Asistente FitMan',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ChatScreen()),
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.settings_outlined, color: primaryColor),
+            onPressed: () => _mostrarOpcionesCuenta(context, theme),
           ),
         ],
       ),
@@ -62,6 +66,148 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  void _mostrarOpcionesCuenta(BuildContext context, ThemeData theme) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surfaceLight,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle visual
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: AppColors.textMuted.withOpacity(0.4),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+
+              // Opción 1 — Editar perfil
+              _buildOpcionCuenta(
+                context: context,
+                theme: theme,
+                icon: Icons.edit_outlined,
+                titulo: 'Editar perfil',
+                subtitulo: 'Modifica tus datos personales',
+                color: AppColors.primary,
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  final user = context
+                      .read<ProfileViewModel>()
+                      .user;
+                  if (user != null) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => EditProfileScreen(user: user),
+                      ),
+                    );
+                  }
+                },
+              ),
+
+              // Opción 2 — Ayuda
+              _buildOpcionCuenta(
+                context: context,
+                theme: theme,
+                icon: Icons.help_outline_rounded,
+                titulo: 'Ayuda',
+                subtitulo: 'Preguntas frecuentes y soporte',
+                color: AppColors.textSecondary,
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  debugPrint('Ayuda — TODO');
+                },
+              ),
+
+              _buildOpcionCuenta(
+                context: context,
+                theme: theme,
+                icon: Icons.fitness_center,
+                titulo: 'Asistente FitMan',
+                subtitulo: 'Tu entrenador personal con IA',
+                color: AppColors.primary,
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ChatScreen()),
+                  );
+                },
+              ),
+
+              const Divider(
+                color: AppColors.surface,
+                height: 24,
+                indent: 20,
+                endIndent: 20,
+              ),
+
+              // Opción 3 — Cerrar sesión
+              _buildOpcionCuenta(
+                context: context,
+                theme: theme,
+                icon: Icons.logout_rounded,
+                titulo: 'Cerrar sesión',
+                subtitulo: 'Salir de tu cuenta',
+                color: AppColors.error,
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _mostrarDialogoLogout(context, theme);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOpcionCuenta({
+    required BuildContext context,
+    required ThemeData theme,
+    required IconData icon,
+    required String titulo,
+    required String subtitulo,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+      leading: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: color, size: 22),
+      ),
+      title: Text(
+        titulo,
+        style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
+      ),
+      subtitle: Text(
+        subtitulo,
+        style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
+      ),
+      trailing: Icon(
+        Icons.arrow_forward_ios_rounded,
+        color: AppColors.textMuted,
+        size: 14,
+      ),
+    );
+  }
+
   Widget _buildBody({
     required BuildContext context,
     required ThemeData theme,
@@ -73,44 +219,37 @@ class ProfileScreen extends StatelessWidget {
     required int esteMes,
   }) {
     if (isLoading) {
-      return Center(
-        child: CircularProgressIndicator(color: primaryColor),
-      );
+      return Center(child: CircularProgressIndicator(color: primaryColor));
     }
 
-    // Estado de error explícito — ya no se confunde con "usuario null"
     if (errorMessage != null) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline,
-                size: 60, color: AppColors.error),
+            const Icon(Icons.error_outline, size: 60, color: AppColors.error),
             const SizedBox(height: 16),
-            Text(
-              errorMessage,
-              style: theme.textTheme.bodyLarge
-                  ?.copyWith(color: AppColors.error),
-            ),
+            Text(errorMessage,
+                style: theme.textTheme.bodyLarge
+                    ?.copyWith(color: AppColors.error)),
           ],
         ),
       );
     }
 
     if (user == null) {
-      return const Center(
-        child: Text(
-          "Error al cargar perfil",
-          style: TextStyle(color: AppColors.error),
-        ),
+      return Center(
+        child: Text("Error al cargar perfil",
+            style: theme.textTheme.bodyLarge
+                ?.copyWith(color: AppColors.error)),
       );
     }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Cabecera
           Center(
             child: Column(
               children: [
@@ -120,16 +259,12 @@ class ProfileScreen extends StatelessWidget {
                   child: Icon(Icons.person, size: 50, color: primaryColor),
                 ),
                 const SizedBox(height: 15),
-                Text(
-                  user.nombre,
-                  style: theme.textTheme.displayLarge
-                      ?.copyWith(fontSize: 26),
-                ),
-                Text(
-                  user.email,
-                  style: theme.textTheme.bodyMedium
-                      ?.copyWith(color: AppColors.textSecondary),
-                ),
+                Text(user.nombre,
+                    style: theme.textTheme.displayLarge
+                        ?.copyWith(fontSize: 26)),
+                Text(user.email,
+                    style: theme.textTheme.bodyMedium
+                        ?.copyWith(color: AppColors.textSecondary)),
               ],
             ),
           ),
@@ -147,19 +282,19 @@ class ProfileScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _buildStat(primaryColor, "Peso",
-                    user.pesoActual != null ? "${user.pesoActual} kg" : "—", theme),
+                    user.pesoActual != null ? "${user.pesoActual} kg" : "—",
+                    theme),
                 _buildVerticalDivider(),
                 _buildStat(primaryColor, "Altura",
                     user.altura != null ? "${user.altura} cm" : "—", theme),
                 _buildVerticalDivider(),
                 _buildStat(primaryColor, "Edad",
-                    user.edad != null ? "${user.edad}" : "—", theme),
+                    user.edad != null ? "${user.edad} años" : "—", theme),
               ],
             ),
           ),
           const SizedBox(height: 16),
 
-// Tarjeta 2 — Actividad
           _buildSectionLabel('Actividad', theme),
           const SizedBox(height: 8),
           Container(
@@ -174,47 +309,27 @@ class ProfileScreen extends StatelessWidget {
                 _buildStat(primaryColor, "Entrenos totales",
                     '$totalEntrenamientos', theme),
                 _buildVerticalDivider(),
-                _buildStat(primaryColor, "Este mes",
-                    '$esteMes', theme),
+                _buildStat(primaryColor, "Este mes", '$esteMes', theme),
               ],
             ),
           ),
           const SizedBox(height: 30),
 
-          // Información adicional
-          // TODO: Calcular fecha de miembro desde user.fechaMiembro
+          _buildInfoTile(Icons.calendar_today, "Miembro desde",
+              _formatFecha(user.fechaMiembro), theme),
           _buildInfoTile(
-            Icons.calendar_today,
-            "Miembro desde",
-            _formatFecha(user.fechaMiembro),
-            theme,
-          ),
-          _buildInfoTile(
-            Icons.fitness_center,
+            Icons.bar_chart_rounded,
             "Nivel",
-            user.experiencia ?? "—",
+            user.nivel != null ? _capitalizarPrimera(user.nivel!) : "—",
             theme,
           ),
-
-          const SizedBox(height: 40),
-
-          // Botón cerrar sesión
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.error,
-                foregroundColor: AppColors.textPrimary,
-                minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-              ),
-              onPressed: () => _mostrarDialogoLogout(context),
-              child: const Text(
-                "CERRAR SESIÓN",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
+          _buildInfoTile(
+            Icons.flag_outlined,
+            "Objetivo",
+            user.objetivo != null
+                ? _capitalizarPrimera(user.objetivo!)
+                : "—",
+            theme,
           ),
           const SizedBox(height: 20),
         ],
@@ -226,20 +341,16 @@ class ProfileScreen extends StatelessWidget {
       Color color, String label, String value, ThemeData theme) {
     return Column(
       children: [
-        Text(
-          value,
-          style: theme.textTheme.bodyLarge?.copyWith(
-            color: color,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
+        Text(value,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            )),
         const SizedBox(height: 4),
-        Text(
-          label,
-          style: theme.textTheme.bodyMedium
-              ?.copyWith(color: AppColors.textSecondary),
-        ),
+        Text(label,
+            style: theme.textTheme.bodyMedium
+                ?.copyWith(color: AppColors.textSecondary)),
       ],
     );
   }
@@ -259,11 +370,9 @@ class ProfileScreen extends StatelessWidget {
           const SizedBox(width: 15),
           Text(title, style: theme.textTheme.bodyMedium),
           const Spacer(),
-          Text(
-            value,
-            style: theme.textTheme.bodyLarge
-                ?.copyWith(fontWeight: FontWeight.bold),
-          ),
+          Text(value,
+              style: theme.textTheme.bodyLarge
+                  ?.copyWith(fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -292,64 +401,57 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  void _mostrarDialogoLogout(BuildContext context) {
+  void _mostrarDialogoLogout(BuildContext context, ThemeData theme) {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: AppColors.surfaceLight,
-        title: Text("¿Cerrar sesión?",
-          style: Theme.of(context).textTheme.titleLarge,
+        title: Text("¿Cerrar sesión?", style: theme.textTheme.titleLarge),
+        content: Text(
+          "¿Estás seguro de que quieres cerrar sesión?",
+          style: theme.textTheme.bodyMedium,
         ),
-        content:
-        const Text("¿Estás seguro de que quieres abandonar el barco?"),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text(
-              "CANCELAR",
-              style: TextStyle(color: AppColors.textMuted),
-            ),
+            child: Text("CANCELAR",
+                style: theme.textTheme.bodyMedium
+                    ?.copyWith(color: AppColors.textMuted)),
           ),
           TextButton(
             onPressed: () async {
               Navigator.pop(dialogContext);
-
-              // logout() ahora existe en LoginViewModel
-              await Provider.of<LoginViewModel>(
-                context,
-                listen: false,
-              ).logout();
-
+              await Provider.of<LoginViewModel>(context, listen: false)
+                  .logout();
               if (context.mounted) {
                 Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  '/login',
-                      (route) => false,
-                );
+                    context, '/login', (route) => false);
               }
             },
-            child: const Text(
-              "SÍ, SALIR",
-              style: TextStyle(color: Colors.redAccent),
-            ),
+            child: Text("SÍ, SALIR",
+                style: theme.textTheme.bodyMedium
+                    ?.copyWith(color: AppColors.error)),
           ),
         ],
       ),
     );
   }
 
+
   String _formatFecha(String? fechaIso) {
     if (fechaIso == null) return '—';
     try {
       final fecha = DateTime.parse(fechaIso);
-      // Formato simple: "Mayo 2025"
       const meses = [
-        'Enero','Febrero','Marzo','Abril','Mayo','Junio',
-        'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'
+        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
       ];
       return '${meses[fecha.month - 1]} ${fecha.year}';
     } catch (_) {
       return '—';
     }
   }
+
+  String _capitalizarPrimera(String texto) =>
+      texto.isEmpty ? texto : texto[0].toUpperCase() + texto.substring(1);
 }
