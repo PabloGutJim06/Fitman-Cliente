@@ -9,6 +9,7 @@ import 'edit_routine_screen.dart';
 import 'colaboradores_screen.dart';
 import '../../viewmodels/ejercicio_viewmodel.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../services/connectivity_service.dart';
 
 class RoutineDetailScreen extends StatelessWidget {
   final RoutineModel routine;
@@ -33,24 +34,64 @@ class RoutineDetailScreen extends StatelessWidget {
         iconTheme: const IconThemeData(color: AppColors.primary),
         actions: [
           if (rutinaActual.tienePermisoEdicion)
-            IconButton(
-              icon: const Icon(Icons.edit_outlined, color: AppColors.primary),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => EditRoutineScreen(routine: rutinaActual),
-                ),
-              ),
+            FutureBuilder<bool>(
+              future: ConnectivityService().tieneConexion(),
+              builder: (context, snap) {
+                final online = snap.data ?? true;
+                return IconButton(
+                  icon: Icon(Icons.edit_outlined,
+                      color: online
+                          ? AppColors.primary
+                          : AppColors.textMuted),
+                  onPressed: online
+                      ? () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          EditRoutineScreen(routine: rutinaActual),
+                    ),
+                  )
+                      : () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                            'Necesitas conexión para editar'),
+                        backgroundColor: AppColors.surfaceLight,
+                      ),
+                    );
+                  },
+                );
+              },
             ),
           if (rutinaActual.esCreador)
-            IconButton(
-              icon: const Icon(Icons.group_outlined, color: AppColors.primary),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ColaboradoresScreen(routine: rutinaActual),
-                ),
-              ),
+            FutureBuilder<bool>(
+              future: ConnectivityService().tieneConexion(),
+              builder: (context, snap) {
+                final online = snap.data ?? true;
+                return IconButton(
+                  icon: Icon(Icons.group_outlined,
+                      color: online
+                          ? AppColors.primary
+                          : AppColors.textMuted),
+                  onPressed: online
+                      ? () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          ColaboradoresScreen(routine: rutinaActual),
+                    ),
+                  )
+                      : () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                            'Necesitas conexión para gestionar colaboradores'),
+                        backgroundColor: AppColors.surfaceLight,
+                      ),
+                    );
+                  },
+                );
+              },
             ),
         ],
       ),

@@ -7,6 +7,7 @@ import '../../models/user_model.dart';
 import '../../theme/app_colors.dart';
 import 'edit_profile_screen.dart';
 import 'chat_screen.dart';
+import 'dart:io';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -30,6 +31,9 @@ class ProfileScreen extends StatelessWidget {
     );
     final esteMes = context.select<RegistroViewModel, int>(
           (vm) => vm.esteMes,
+    );
+    final avatarFile = context.select<ProfileViewModel, File?>(
+          (vm) => vm.avatarFile,
     );
 
     return Scaffold(
@@ -62,6 +66,7 @@ class ProfileScreen extends StatelessWidget {
         errorMessage: errorMessage,
         totalEntrenamientos: totalEntrenamientos,
         esteMes: esteMes,
+        avatarFile: avatarFile,
       ),
     );
   }
@@ -111,20 +116,6 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     );
                   }
-                },
-              ),
-
-              // Opción 2 — Ayuda
-              _buildOpcionCuenta(
-                context: context,
-                theme: theme,
-                icon: Icons.help_outline_rounded,
-                titulo: 'Ayuda',
-                subtitulo: 'Preguntas frecuentes y soporte',
-                color: AppColors.textSecondary,
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  debugPrint('Ayuda — TODO');
                 },
               ),
 
@@ -217,6 +208,7 @@ class ProfileScreen extends StatelessWidget {
     required String? errorMessage,
     required int totalEntrenamientos,
     required int esteMes,
+    required File? avatarFile,
   }) {
     if (isLoading) {
       return Center(child: CircularProgressIndicator(color: primaryColor));
@@ -253,10 +245,39 @@ class ProfileScreen extends StatelessWidget {
           Center(
             child: Column(
               children: [
-                CircleAvatar(
-                  radius: 50,
-                  backgroundColor: AppColors.surface,
-                  child: Icon(Icons.person, size: 50, color: primaryColor),
+                GestureDetector(
+                  onTap: () => _cambiarAvatar(context),
+                  onLongPress: () => _mostrarMenuAvatar(context, theme),
+                  child: Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 50,
+                        backgroundColor: AppColors.surface,
+                        backgroundImage: avatarFile != null
+                            ? FileImage(avatarFile!)
+                            : null,
+                        child: avatarFile == null
+                            ? Icon(Icons.person, size: 50, color: primaryColor)
+                            : null,
+                      ),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                                color: AppColors.background, width: 2),
+                          ),
+                          child: const Icon(Icons.camera_alt,
+                              color: AppColors.background, size: 14),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 15),
                 Text(user.nombre,
@@ -437,6 +458,85 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  void _cambiarAvatar(BuildContext context) {
+    context.read<ProfileViewModel>().cambiarAvatar();
+  }
+
+  void _mostrarMenuAvatar(BuildContext context, ThemeData theme) {
+    final tieneAvatar =
+        context.read<ProfileViewModel>().avatarFile != null;
+    if (!tieneAvatar) return;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surfaceLight,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: AppColors.textMuted.withOpacity(0.4),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              ListTile(
+                contentPadding:
+                const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+                leading: Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.photo_library_outlined,
+                      color: AppColors.primary, size: 22),
+                ),
+                title: Text('Cambiar foto',
+                    style: theme.textTheme.bodyLarge
+                        ?.copyWith(fontWeight: FontWeight.bold)),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  context.read<ProfileViewModel>().cambiarAvatar();
+                },
+              ),
+              ListTile(
+                contentPadding:
+                const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+                leading: Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.delete_outline,
+                      color: AppColors.error, size: 22),
+                ),
+                title: Text('Eliminar foto',
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.error)),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  context.read<ProfileViewModel>().eliminarAvatar();
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   String _formatFecha(String? fechaIso) {
     if (fechaIso == null) return '—';

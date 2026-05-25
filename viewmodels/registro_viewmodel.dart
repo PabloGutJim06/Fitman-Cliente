@@ -62,10 +62,12 @@ class RegistroViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> completarEntrenamiento(String token,
+  Future<bool> completarEntrenamiento(
+      String token,
       String rutinaId,
       String rutinaNombre,
-      int numEjercicios,) async {
+      int numEjercicios,
+      ) async {
     final hayRed = await _connectivity.tieneConexion();
 
     if (hayRed) {
@@ -74,13 +76,36 @@ class RegistroViewModel extends ChangeNotifier {
       if (success) await loadRegistros(token);
       return success;
     } else {
+      final ahora = DateTime.now();
       await _hive.encolarRegistro(PendingRegistro(
         rutinaId: rutinaId,
         rutinaNombre: rutinaNombre,
         numEjercicios: numEjercicios,
-        fecha: DateTime.now(),
+        fecha: ahora,
       ));
-      debugPrint('RegistroViewModel: entrenamiento encolado para sync');
+
+      // Añadir a la lista local
+      // El usuario ve el registro en el historial aunque no haya red
+      // Cuando se sincronice, loadRegistros() lo reemplazará con el real
+      final registroLocal = RegistroModel(
+        id: 'pending_${ahora.millisecondsSinceEpoch}', // ID temporal
+        rutinaId: rutinaId,
+        rutinaNombre: rutinaNombre,
+        numEjercicios: numEjercicios,
+        usuarioId: '',
+        fecha: ahora,
+      );
+
+      _registros = [..._registros, registroLocal];
+      _totalEntrenamientos = _registros.length;
+      final mes = ahora;
+      _esteMes = _registros
+          .where((r) =>
+      r.fecha.year == mes.year && r.fecha.month == mes.month)
+          .length;
+
+      notifyListeners();
+      debugPrint('RegistroViewModel: entrenamiento encolado y añadido localmente');
       return true;
     }
   }

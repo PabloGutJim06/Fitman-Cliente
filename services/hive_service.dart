@@ -127,4 +127,22 @@ class HiveService {
     'fecha': r.fecha.toIso8601String(),
     if (r.notas != null) 'notas': r.notas,
   };
+
+  static const String _avatarKey = 'avatar_path';
+
+  Future<void> guardarAvatarPath(String path) async {
+    final box = Hive.box<String>(HiveBoxes.rutinas);
+    await box.put(_avatarKey, path);
+    debugPrint('Hive: avatar guardado en $path');
+  }
+
+  String? cargarAvatarPath() {
+    final box = Hive.box<String>(HiveBoxes.rutinas);
+    return box.get(_avatarKey);
+  }
+
+  Future<void> eliminarAvatar() async {
+    final box = Hive.box<String>(HiveBoxes.rutinas);
+    await box.delete(_avatarKey);
+  }
 }

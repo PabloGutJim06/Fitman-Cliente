@@ -5,6 +5,9 @@ import '../../models/registro_model.dart';
 import '../../viewmodels/registro_viewmodel.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_colors.dart';
+import 'dart:async';
+import '../../services/connectivity_service.dart';
+import '../../services/sync_service.dart';
 
 class HistorialScreen extends StatefulWidget {
   const HistorialScreen({super.key});
@@ -16,11 +19,26 @@ class HistorialScreen extends StatefulWidget {
 class _HistorialScreenState extends State<HistorialScreen> {
   DateTime _selectedDay = DateTime.now();
   DateTime _focusedDay = DateTime.now();
+  final ConnectivityService _connectivity = ConnectivityService();
+  bool _isOnline = true;
+  StreamSubscription<bool>? _connSub;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _cargarRegistros());
+    _connectivity.tieneConexion().then((v) {
+      if (mounted) setState(() => _isOnline = v);
+    });
+    _connSub = _connectivity.onConnectivityChanged.listen((online) {
+      if (mounted) setState(() => _isOnline = online);
+    });
+  }
+
+  @override
+  void dispose() {
+    _connSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _cargarRegistros() async {
@@ -79,6 +97,10 @@ class _HistorialScreenState extends State<HistorialScreen> {
                         ),
                         const SizedBox(height: 8),
                         _buildResumenChips(registroVM, context),
+                        if (!_isOnline) ...[
+                          const SizedBox(height: 10),
+                          _buildOfflineBanner(context),
+                        ],
                       ],
                     ),
                   ),
@@ -239,6 +261,40 @@ class _HistorialScreenState extends State<HistorialScreen> {
           color: AppColors.textMuted,
           fontSize: 12,
         ),
+      ),
+    );
+  }
+
+  Widget _buildOfflineBanner(BuildContext context) {
+    final theme = Theme.of(context);
+    final pendientes = SyncService().totalPendientes;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLight,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+            color: AppColors.textMuted.withOpacity(0.25)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.wifi_off_rounded,
+              color: AppColors.textMuted, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              pendientes > 0
+                  ? 'Sin conexión · $pendientes ${pendientes == 1 ? 'entrenamiento' : 'entrenamientos'} se sincronizarán automáticamente'
+                  : 'Sin conexión · Mostrando historial guardado',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: AppColors.textMuted,
+                fontSize: 10,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

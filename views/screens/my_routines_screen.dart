@@ -7,9 +7,39 @@ import '../../theme/app_colors.dart';
 import 'create_routine_screen.dart';
 import 'routine_detail_screen.dart';
 import 'edit_routine_screen.dart';
+import 'dart:async';
+import '../../services/connectivity_service.dart';
+import '../../services/sync_service.dart';
 
-class MyRoutinesScreen extends StatelessWidget {
+class MyRoutinesScreen extends StatefulWidget {
   const MyRoutinesScreen({super.key});
+
+  @override
+  State<MyRoutinesScreen> createState() => _MyRoutinesScreenState();
+}
+
+class _MyRoutinesScreenState extends State<MyRoutinesScreen> {
+  final ConnectivityService _connectivity = ConnectivityService();
+  bool _isOnline = true;
+  StreamSubscription<bool>? _sub;
+
+  @override
+  void initState() {
+    super.initState();
+    // ✅ Chequeo inicial + escucha cambios en tiempo real
+    _connectivity.tieneConexion().then((v) {
+      if (mounted) setState(() => _isOnline = v);
+    });
+    _sub = _connectivity.onConnectivityChanged.listen((online) {
+      if (mounted) setState(() => _isOnline = online);
+    });
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +67,10 @@ class MyRoutinesScreen extends StatelessWidget {
                           .displayLarge
                           ?.copyWith(fontSize: 28),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 8),
+                    if (!_isOnline) _buildOfflineBanner(context),
+
+                    const SizedBox(height: 12),
                     Expanded(child: _buildBody(routineVM, context)),
                   ],
                 ),
@@ -45,16 +78,76 @@ class MyRoutinesScreen extends StatelessWidget {
             ),
           ),
           floatingActionButton: FloatingActionButton(
-            backgroundColor: AppColors.primary,
+            backgroundColor: _isOnline
+                ? AppColors.primary
+                : AppColors.textMuted.withOpacity(0.3),
             foregroundColor: AppColors.background,
-            onPressed: () => Navigator.push(
+            onPressed: _isOnline
+                ? () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const CreateRoutineScreen()),
-            ),
+              MaterialPageRoute(
+                  builder: (_) => const CreateRoutineScreen()),
+            )
+                : () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                      'Necesitas conexión para crear rutinas'),
+                  backgroundColor: AppColors.surfaceLight,
+                ),
+              );
+            },
             child: const Icon(Icons.add, size: 30),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildOfflineBanner(BuildContext context) {
+    final theme = Theme.of(context);
+    final pendientes = SyncService().totalPendientes;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLight,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+            color: AppColors.textMuted.withOpacity(0.25)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.wifi_off_rounded,
+              color: AppColors.textMuted, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Sin conexión',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+                Text(
+                  pendientes > 0
+                      ? '$pendientes ${pendientes == 1 ? 'entrenamiento pendiente' : 'entrenamientos pendientes'} de sincronizar'
+                      : 'Mostrando rutinas guardadas',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textMuted,
+                    fontSize: 10,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
