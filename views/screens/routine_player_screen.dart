@@ -216,7 +216,7 @@ class _RoutinePlayerScreenState extends State<RoutinePlayerScreen> {
               height: 60,
               child: OutlinedButton(
                 style: AppTheme.primaryButtonStyle,
-                onPressed: esUltimo ? _finalizarEntrenamiento : _avanzar,
+                onPressed: _avanzar,
                 child: Text(
                   esUltimo ? 'FINALIZAR' : 'SIGUIENTE',
                   style: theme.textTheme.labelLarge?.copyWith(

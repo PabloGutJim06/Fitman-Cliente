@@ -26,7 +26,6 @@ class _MyRoutinesScreenState extends State<MyRoutinesScreen> {
   @override
   void initState() {
     super.initState();
-    // ✅ Chequeo inicial + escucha cambios en tiempo real
     _connectivity.tieneConexion().then((v) {
       if (mounted) setState(() => _isOnline = v);
     });

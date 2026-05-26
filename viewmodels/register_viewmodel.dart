@@ -74,12 +74,18 @@ class RegisterViewModel extends ChangeNotifier {
         nivel: nivel,
       );
 
+      // ✅ TEMPORAL — para diagnosticar
+      debugPrint('Register result: $success');
+      debugPrint('Email usado: ${email.trim()}');
+
       if (!success) {
         _errorMessage = 'No se pudo crear la cuenta. El email puede estar en uso.';
       }
 
       return success;
     } catch (e) {
+      // ✅ TEMPORAL
+      debugPrint('Register exception: $e');
       _errorMessage = 'Error de conexión. Inténtalo de nuevo.';
       return false;
     } finally {

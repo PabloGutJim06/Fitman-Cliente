@@ -1,5 +1,5 @@
 class ApiConfig {
-  static const String baseUrl = "http://10.0.2.2:3000/api";
+  static const String baseUrl = "https://fitman-server.onrender.com/api";
 
   // Endpoints específicos
   static const String login = "$baseUrl/usuarios/login";

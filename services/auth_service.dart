@@ -70,9 +70,13 @@ class AuthService {
         body: jsonEncode(body),
       );
 
+      // ✅ TEMPORAL — diagnóstico
+      debugPrint('Register status: ${response.statusCode}');
+      debugPrint('Register body: ${response.body}');
+
       return response.statusCode == 201;
     } catch (e) {
-      debugPrint('Error en registro: $e');
+      debugPrint('Register exception: $e');
       return false;
     }
   }
